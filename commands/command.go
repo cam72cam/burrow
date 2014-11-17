@@ -2,77 +2,71 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/cam72cam/burrow/completion"
 	"github.com/derekparker/delve/proctl"
 )
 
-var history string
+func MatchInput(cmd string) []completion.Match {
+	res := make([]completion.Match, 0, len(commands))
 
-func init() {
-	commands = []Command{
-		Command{"help", help, "Help Text"},
-		Command{"exit", exit, "Exit"},
-		Command{"quit", exit, "Exit"},
-		Command{"quazar", exit, "Exit"},
+	for name, def := range commands {
+		if len(name) >= len(cmd) && name[:len(cmd)] == cmd {
+			res = append(res, completion.Match{Name: name, Complete: def.Complete})
+		}
 	}
+	return res
 }
 
 type CmdFn func(p *proctl.DebuggedProcess, args ...string) error
 
-type Command struct {
-	Name string
-	Func CmdFn
-	Help string
+type CommandDef struct {
+	Func     CmdFn
+	Help     string
+	Complete completion.CompleteParamsFunc
 }
 
-var commands []Command
+var commands map[string]CommandDef
 
-func Match(cmd string) (res *Command) {
-	maxlen := len(cmd)
-	if len(cmd) == 0 {
-		return nil
+func init() {
+	commands = map[string]CommandDef{
+		"help":   CommandDef{help, "Help Text", helpComplete},
+		"exit":   CommandDef{exit, "Exit", nil},
+		"quit":   CommandDef{exit, "Exit", nil},
+		"quazar": CommandDef{exit, "Exit", nil},
 	}
-	for i := 1; i <= maxlen; i++ {
-		curr := make([]Command, 0, len(commands))
-		for _, c := range commands {
-			if len(c.Name) >= maxlen && c.Name[:i] == cmd[:i] {
-				curr = append(curr, c)
-			}
-		}
-		if len(curr) == 1 {
-			return &curr[0]
-		}
-		if i == maxlen {
-			for _, c := range curr {
-				if len(c.Name) == maxlen {
-					return &c
-				}
-			}
-			for _, c := range curr {
-				fmt.Printf("%s, ", c.Name)
-			}
-		}
-	}
-	return
 }
 
-func Run(p *proctl.DebuggedProcess, line string) error {
-	split := strings.Split(line, " ")
-	cmd := Match(split[0])
-	if cmd == nil {
-		return nil
+func Run(p *proctl.DebuggedProcess, cmd string, params []string) error {
+	if c, ok := commands[cmd]; ok {
+		return c.Func(p, params...)
 	}
-	return cmd.Func(p, split[1:]...)
+	return nil
 }
 
 func exit(p *proctl.DebuggedProcess, args ...string) error {
 	return ExitCMD
 }
 
+func helpComplete(args []string) []string {
+	if len(args) == 0 {
+		return []string{"TODO usage"}
+	}
+	arg := args[0]
+	possible := MatchInput(arg)
+	if len(possible) == 0 {
+		return []string{"Unknown command, no help availiable"}
+	}
+
+	res := make([]string, len(possible))
+	for i, p := range possible { //TODO This should probably be a func on the list
+		res[i] = p.Name
+	}
+	return res
+}
 func help(p *proctl.DebuggedProcess, args ...string) error {
-	for _, cmd := range commands {
-		fmt.Printf("%s: %s\n", cmd.Name, cmd.Help)
+	for name, def := range commands {
+		fmt.Printf("%s: %s\n", name, def.Help)
 	}
 	return nil
 }

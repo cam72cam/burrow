@@ -3,25 +3,10 @@ package display
 import (
 	"strings"
 
+	"github.com/cam72cam/burrow/completion"
 	"github.com/cam72cam/burrow/history"
 	nc "github.com/gbin/goncurses"
 )
-
-/// Func of current params
-/// Returns possible completions to last param
-type CompleteParamsFunc func(curr []string) []string
-
-type Match struct {
-	Name string
-	CompleteParamsFunc
-}
-
-type MatchFunc func(string) []Match
-
-type Command struct {
-	Name   string
-	Params []string
-}
 
 func max(x, y int) int {
 	if x < y {
@@ -36,7 +21,12 @@ func min(x, y int) int {
 	return x
 }
 
-func NextCommand(fn MatchFunc) *Command {
+type Command struct {
+	Name   string
+	Params []string
+}
+
+func NextCommand(match completion.MatchFunc) *Command {
 	var input string
 	var saved string
 	histdex := 0
@@ -56,6 +46,8 @@ func NextCommand(fn MatchFunc) *Command {
 
 	for {
 		k := prompt.GetChar()
+		_, x := prompt.MaxYX()
+		prompt.HLine(1, 0, ' ', x)
 		switch k {
 		case nc.KEY_RETURN:
 			e := history.NewEntry(input)
@@ -65,7 +57,32 @@ func NextCommand(fn MatchFunc) *Command {
 			}
 			return nil
 		case nc.KEY_TAB:
-
+			var name string
+			var args []string
+			e := history.NewEntry(input) //Easier to use entry than duplicate split logic here
+			if e != nil {
+				name = e.Name
+				args = e.Args
+			}
+			matches := match(name)
+			if len(matches) > 0 {
+				if len(matches) == 1 {
+					m := matches[0]
+					if len(m.Name) != len(name) { //no args yet, autocomplete name
+						input = m.Name + " "
+						pos = len(input)
+					} else if m.Complete != nil { //Complete args
+						suggested := m.Complete(args)
+						prompt.MovePrint(1, 1, strings.Join(suggested, ", "))
+					}
+				} else { //Still trying to find command
+					suggested := make([]string, len(matches))
+					for i, m := range matches {
+						suggested[i] = m.Name
+					}
+					prompt.MovePrint(1, 1, strings.Join(suggested, ", "))
+				}
+			}
 		case nc.KEY_UP:
 			if histdex == 0 {
 				saved = input

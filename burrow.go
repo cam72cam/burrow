@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cam72cam/burrow/commands"
 	"github.com/cam72cam/burrow/display"
 )
 
@@ -18,7 +19,10 @@ func main() {
 	for {
 		in := display.NextInput()
 		if in.String() == ":" {
-			display.NextCommand(nil)
+			cmd := display.NextCommand(commands.MatchInput)
+			if cmd != nil {
+				commands.Run(nil, cmd.Name, cmd.Params)
+			}
 		} else {
 			//TODO
 		}

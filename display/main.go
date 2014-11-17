@@ -37,13 +37,10 @@ func Init() (func(), error) {
 	prompt = s.Sub(2, x, y-2, 0)
 	prompt.Keypad(true)
 	prompt.Touch()
+	prompt.Refresh()
 
 	code.Box(0, 0)
 	code.Refresh()
-
-	prompt.Box(0, 0)
-	prompt.Refresh()
-
 	//code.SetBackground(nc.ColorPair(2))
 
 	//Cleanup
