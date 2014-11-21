@@ -53,7 +53,9 @@ func (o *Output) Print(l string) {
 	blen := len(o.buf)
 
 	if o.line == blen { //Append
-		o.Scroll(1)
+		if blen > o.Size() {
+			o.Scroll(1)
+		}
 		o.buf = append(o.buf, l)
 	} else if len(o.buf) > o.line-1 { //Insert
 		if cap(o.buf) == len(o.buf) { //Resize
@@ -97,13 +99,12 @@ func (o *Output) FindNext(s string) int {
 func (o *Output) MoveCursor(lines int) {
 	newpos := lines + o.line
 	newpos = min(max(0, newpos), len(o.buf))
-	o.line = newpos
-	if o.line > o.scroll+o.Size() {
-		o.Scroll(o.line - o.scroll + o.Size())
-	} else if o.line < o.scroll {
-		o.Scroll(o.line - o.scroll)
+	if newpos > o.scroll+o.Size() {
+		o.Scroll(newpos - o.scroll - o.Size())
+	} else if newpos < o.scroll {
+		o.Scroll(newpos - o.scroll)
 	}
-	o.win.Refresh()
+	o.line = newpos
 	o.win.Move(o.line-o.scroll, 1)
 	o.win.Refresh()
 }
@@ -117,7 +118,7 @@ func (o *Output) Scroll(dist int) {
 	blen := len(o.buf)
 	if dist > 0 {
 		// (dist + scroll or last line) - how far we have scrolled already
-		dist = min(dist+o.scroll+o.Size(), blen-1) - o.scroll - o.Size()
+		dist = min(dist+o.scroll, blen-1) - o.scroll
 		if dist > 0 {
 			oldscroll := o.scroll
 			o.scroll += dist
@@ -143,8 +144,7 @@ func (o *Output) Scroll(dist int) {
 
 	if o.scroll > o.line {
 		o.line = o.scroll
-	}
-	if o.scroll+o.Size() < o.line {
+	} else if o.scroll+o.Size() < o.line {
 		o.line = o.scroll + o.Size()
 	}
 
