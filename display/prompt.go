@@ -1,6 +1,7 @@
 package display
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/cam72cam/burrow/completion"
@@ -61,6 +62,9 @@ func NextCommand(match completion.MatchFunc) *Command {
 					if match.Name == e.Name {
 						return &Command{Name: match.Name, Params: e.Args}
 					}
+				}
+				if _, err := strconv.Atoi(e.Name); err == nil {
+					return &Command{Name: e.Name}
 				}
 			}
 			return nil
@@ -153,4 +157,28 @@ func NextCommand(match completion.MatchFunc) *Command {
 		redraw()
 	}
 	return nil
+}
+
+func SearchInput() string {
+	prompt.Move(0, 0)
+	prompt.Print("/")
+	sstr := ""
+	Echo(true)
+	defer Echo(false)
+	for {
+		k := prompt.GetChar()
+		switch k {
+		case nc.KEY_RETURN:
+			return sstr
+		case nc.KEY_BACKSPACE:
+			if len(sstr) > 0 {
+				sstr = sstr[0 : len(sstr)-1]
+			}
+		default:
+			ks := nc.KeyString(k)
+			if len(ks) == 1 {
+				sstr += ks
+			}
+		}
+	}
 }

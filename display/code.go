@@ -2,6 +2,8 @@ package display
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/cam72cam/burrow/attached"
 	nc "github.com/gbin/goncurses"
 )
@@ -81,6 +83,36 @@ func (o *Output) updateLine(line int) {
 	}
 }
 
+//Find s after line l
+func (o *Output) FindNext(s string) int {
+	bl := len(o.buf)
+	for i := o.scroll; i < bl; i++ {
+		if strings.Contains(o.buf[i], s) {
+			return i
+		}
+	}
+	return 0
+}
+
+func (o *Output) MoveCursor(lines int) {
+	newpos := lines + o.line
+	newpos = min(max(0, newpos), len(o.buf))
+	o.line = newpos
+	if o.line > o.scroll+o.Size() {
+		o.Scroll(o.line - o.scroll + o.Size())
+	} else if o.line < o.scroll {
+		o.Scroll(o.line - o.scroll)
+	}
+	o.win.Refresh()
+	o.win.Move(o.line-o.scroll, 1)
+	o.win.Refresh()
+}
+
+func (o *Output) GoToLine(line int) {
+	o.line += o.scroll
+	o.Scroll(line - o.scroll)
+}
+
 func (o *Output) Scroll(dist int) {
 	blen := len(o.buf)
 	if dist > 0 {
@@ -108,6 +140,15 @@ func (o *Output) Scroll(dist int) {
 			}
 		}
 	}
+
+	if o.scroll > o.line {
+		o.line = o.scroll
+	}
+	if o.scroll+o.Size() < o.line {
+		o.line = o.scroll + o.Size()
+	}
+
+	o.win.Move(o.line, 0)
 
 	o.win.Refresh()
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 
 	"github.com/cam72cam/burrow/attached"
 	"github.com/cam72cam/burrow/commands"
@@ -59,6 +60,9 @@ func main() {
 		in := display.NextInput()
 		if in.String() == ":" {
 			cmd := display.NextCommand(commands.MatchInput)
+			if l, err := strconv.Atoi(cmd.Name); err == nil {
+				display.Curr.GoToLine(l)
+			}
 			if cmd != nil {
 				err := commands.Run(p, cmd.Name, cmd.Params)
 				switch err {
@@ -75,9 +79,9 @@ func main() {
 		} else {
 			switch in {
 			case nc.KEY_UP:
-				display.Curr.Scroll(-1)
+				display.Curr.MoveCursor(-1)
 			case nc.KEY_DOWN:
-				display.Curr.Scroll(1)
+				display.Curr.MoveCursor(1)
 			case nc.KEY_PAGEUP:
 				display.Curr.Scroll(-display.Curr.Size())
 			case nc.KEY_PAGEDOWN:
@@ -85,10 +89,19 @@ func main() {
 			default:
 				switch in.String() {
 				case "/":
-					//TODO sstr := prompt.Search()
+					sstr = display.SearchInput()
+					l := display.Curr.FindNext(sstr)
+					display.Curr.Printf("%s: %d", sstr, l)
+					display.Curr.GoToLine(l)
+				case "n":
+					l := display.Curr.FindNext(sstr)
+					display.Curr.Printf("%s: %d", sstr, l)
+					display.Curr.GoToLine(l)
 				}
 			}
 		}
 	}
 	Exit(0)
 }
+
+var sstr = ""
