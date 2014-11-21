@@ -100,7 +100,7 @@ func (o *Output) MoveCursor(lines int) {
 	newpos := lines + o.line
 	newpos = min(max(0, newpos), len(o.buf))
 	if newpos > o.scroll+o.Size() {
-		o.Scroll(newpos - o.scroll - o.Size())
+		o.Scroll(newpos - o.scroll - o.Size() + 1)
 	} else if newpos < o.scroll {
 		o.Scroll(newpos - o.scroll)
 	}
