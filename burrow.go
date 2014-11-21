@@ -3,28 +3,92 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
+	"runtime/debug"
 
+	"github.com/cam72cam/burrow/attached"
 	"github.com/cam72cam/burrow/commands"
 	"github.com/cam72cam/burrow/display"
+	nc "github.com/gbin/goncurses"
 )
 
 func main() {
+	runtime.LockOSThread()
+
+	p, err := attached.Launch(os.Args)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	Exit := func(status int) {
+		err := p.Kill()
+		if err != nil {
+			fmt.Println(err)
+		}
+		os.Exit(status)
+	}
+
 	fn, err := display.Init()
 	if err != nil {
 		fmt.Println("Error initializing display: %v", err)
-		os.Exit(1)
+		Exit(1)
 	}
-	defer fn()
+	Exit = func(status int) {
+		fn()
+		err := p.Kill()
+		if err != nil {
+			fmt.Println(err)
+		}
+		os.Exit(status)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			fn()
+			fmt.Println(r)
+			fmt.Printf("%s\n", debug.Stack())
+		}
+		err := p.Kill()
+		if err != nil {
+			fmt.Println(err)
+		}
+		os.Exit(-1)
+	}()
 
 	for {
 		in := display.NextInput()
 		if in.String() == ":" {
 			cmd := display.NextCommand(commands.MatchInput)
 			if cmd != nil {
-				commands.Run(nil, cmd.Name, cmd.Params)
+				err := commands.Run(p, cmd.Name, cmd.Params)
+				switch err {
+				case nil:
+					continue
+				case commands.ExitCMD:
+					Exit(0)
+				default:
+					o := display.NewOutput()
+					defer o.Close()
+					o.Printf("%v", err)
+				}
 			}
 		} else {
-			//TODO
+			switch in {
+			case nc.KEY_UP:
+				display.Curr.Scroll(-1)
+			case nc.KEY_DOWN:
+				display.Curr.Scroll(1)
+			case nc.KEY_PAGEUP:
+				display.Curr.Scroll(-display.Curr.Size())
+			case nc.KEY_PAGEDOWN:
+				display.Curr.Scroll(display.Curr.Size())
+			default:
+				switch in.String() {
+				case "/":
+					//TODO sstr := prompt.Search()
+				}
+			}
 		}
 	}
+	Exit(0)
 }

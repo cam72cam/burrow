@@ -24,7 +24,7 @@ func Init() (func(), error) {
 	nc.StartColor() //Start using colors
 
 	//nc.InitPair(1, nc.C_RED, nc.C_GREEN)
-	nc.InitPair(2, nc.C_BLACK, nc.C_GREEN)
+	nc.InitPair(2, nc.C_GREEN, nc.C_BLACK)
 	//s.SetBackground(nc.ColorPair(1))
 
 	s.Keypad(true)
@@ -32,6 +32,7 @@ func Init() (func(), error) {
 	y, x := s.MaxYX()
 
 	code = s.Sub(y-2, x, 0, 0)
+	code.ScrollOk(true)
 	code.Touch()
 
 	prompt = s.Sub(2, x, y-2, 0)
@@ -39,9 +40,8 @@ func Init() (func(), error) {
 	prompt.Touch()
 	prompt.Refresh()
 
-	code.Box(0, 0)
 	code.Refresh()
-	//code.SetBackground(nc.ColorPair(2))
+	code.SetBackground(nc.ColorPair(2))
 
 	//Cleanup
 	return nc.End, nil

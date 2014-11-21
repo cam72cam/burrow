@@ -53,7 +53,15 @@ func NextCommand(match completion.MatchFunc) *Command {
 			e := history.NewEntry(input)
 			if e != nil {
 				history.Add(*e)
-				return &Command{Name: e.Name, Params: e.Args}
+				matches := match(e.Name)
+				if len(matches) == 1 {
+					return &Command{Name: matches[0].Name, Params: e.Args}
+				}
+				for _, match := range matches {
+					if match.Name == e.Name {
+						return &Command{Name: match.Name, Params: e.Args}
+					}
+				}
 			}
 			return nil
 		case nc.KEY_TAB:

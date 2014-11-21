@@ -2,9 +2,12 @@ package commands
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
+	"github.com/cam72cam/burrow/attached"
 	"github.com/cam72cam/burrow/completion"
-	"github.com/derekparker/delve/proctl"
+	"github.com/cam72cam/burrow/display"
 )
 
 func MatchInput(cmd string) []completion.Match {
@@ -18,7 +21,7 @@ func MatchInput(cmd string) []completion.Match {
 	return res
 }
 
-type CmdFn func(p *proctl.DebuggedProcess, args ...string) error
+type CmdFn func(p *attached.Process, args ...string) error
 
 type CommandDef struct {
 	Func     CmdFn
@@ -31,21 +34,85 @@ var commands map[string]CommandDef
 func init() {
 	commands = map[string]CommandDef{
 		"help":   CommandDef{help, "Help Text", helpComplete},
+		"break":  CommandDef{breakpt, "Break at file.go:line", nil},
+		"clear":  CommandDef{clearpt, "Clear break at file.go:line", nil},
+		"breaks": CommandDef{breakpts, "Show all breakpoints", nil},
+		"show":   CommandDef{showFile, "Show file", nil},
 		"exit":   CommandDef{exit, "Exit", nil},
 		"quit":   CommandDef{exit, "Exit", nil},
-		"quazar": CommandDef{exit, "Exit", nil},
 	}
 }
 
-func Run(p *proctl.DebuggedProcess, cmd string, params []string) error {
+func Run(p *attached.Process, cmd string, params []string) error {
 	if c, ok := commands[cmd]; ok {
 		return c.Func(p, params...)
 	}
 	return nil
 }
 
-func exit(p *proctl.DebuggedProcess, args ...string) error {
+func exit(p *attached.Process, args ...string) error {
 	return ExitCMD
+}
+
+func showFile(p *attached.Process, args ...string) error {
+	out := display.NewOutput()
+	defer out.Close()
+
+	for _, f := range p.Funcs() {
+		out.Printf("%s", f)
+	}
+	return nil
+}
+
+func breakpts(p *attached.Process, args ...string) error {
+	return nil
+}
+
+func pointArgs(args []string) (attached.Point, error) {
+	if len(args) != 1 {
+		return attached.Point{}, fmt.Errorf("Invalid number of arguments")
+	}
+	sp := strings.Split(args[0], ":")
+	switch len(sp) {
+	case 1:
+		addr, err := strconv.Atoi(args[0]) //TODO Atoi is insufficient, need uint64 support
+		if err != nil {
+			return attached.Point{}, err
+		}
+		return attached.Point{Addr: uint64(addr)}, nil
+	case 2:
+		//TODO check file exists
+		file := sp[0]
+		line, err := strconv.Atoi(sp[1])
+		if err != nil {
+			return attached.Point{}, err
+		}
+		return attached.Point{File: file, Line: line}, nil
+	default:
+		return attached.Point{}, fmt.Errorf("Expected File:Line or Address")
+	}
+}
+func breakpt(p *attached.Process, args ...string) error {
+	pt, err := pointArgs(args)
+	if err != nil {
+		return err
+	}
+	pt, err = p.Break(pt)
+	if err != nil {
+		display.ShowPoint(pt)
+	}
+	return err
+}
+func clearpt(p *attached.Process, args ...string) error {
+	pt, err := pointArgs(args)
+	if err != nil {
+		return err
+	}
+	pt, err = p.Clear(pt)
+	if err != nil {
+		display.HidePoint(pt)
+	}
+	return err
 }
 
 func helpComplete(args []string) []string {
@@ -64,9 +131,12 @@ func helpComplete(args []string) []string {
 	}
 	return res
 }
-func help(p *proctl.DebuggedProcess, args ...string) error {
+func help(p *attached.Process, args ...string) error {
+	out := display.NewOutput()
+	defer out.Close()
+
 	for name, def := range commands {
-		fmt.Printf("%s: %s\n", name, def.Help)
+		out.Printf("%s: %s", name, def.Help)
 	}
 	return nil
 }
