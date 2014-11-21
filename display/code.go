@@ -29,6 +29,10 @@ type Output struct {
 var Curr *Output //TODO better
 
 func NewOutput() *Output {
+	if Curr != nil {
+		Curr.win.Clear()
+		Curr.win.Refresh()
+	}
 	Curr = &Output{
 		line:    -1,
 		scroll:  0,
@@ -99,20 +103,19 @@ func (o *Output) FindNext(s string) int {
 func (o *Output) MoveCursor(lines int) {
 	newpos := lines + o.line
 	newpos = min(max(0, newpos), len(o.buf))
-	if newpos > o.scroll+o.Size() {
-		o.Scroll(newpos - o.scroll - o.Size() + 1)
+	if newpos+1 > o.scroll+o.Size() {
+		o.Scroll(newpos + 1 - o.scroll - o.Size())
 	} else if newpos < o.scroll {
 		o.Scroll(newpos - o.scroll)
 	}
 	o.line = newpos
+	o.updateLine(o.line)
 	o.win.Move(o.line-o.scroll, 1)
 	o.win.Refresh()
 }
 
 func (o *Output) GoToLine(line int) {
-	//o.line += o.scroll
 	o.MoveCursor(line - o.line)
-	//o.Scroll(line - o.scroll)
 }
 
 func (o *Output) Scroll(dist int) {

@@ -16,7 +16,7 @@ import (
 func main() {
 	runtime.LockOSThread()
 
-	p, err := attached.Launch(os.Args)
+	p, err := attached.Launch(os.Args[1:])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
