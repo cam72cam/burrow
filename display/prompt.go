@@ -48,9 +48,10 @@ func NextCommand(match completion.MatchFunc) *Command {
 	for {
 		k := prompt.GetChar()
 		_, x := prompt.MaxYX()
-		prompt.HLine(1, 0, ' ', x)
 		switch k {
 		case nc.KEY_RETURN:
+			prompt.HLine(0, 0, ' ', x)
+			prompt.Refresh()
 			e := history.NewEntry(input)
 			if e != nil {
 				history.Add(*e)
@@ -169,6 +170,9 @@ func SearchInput() string {
 		k := prompt.GetChar()
 		switch k {
 		case nc.KEY_RETURN:
+			_, x := prompt.MaxYX()
+			prompt.HLine(0, 0, ' ', x)
+			prompt.Refresh()
 			return sstr
 		case nc.KEY_BACKSPACE:
 			if len(sstr) > 0 {

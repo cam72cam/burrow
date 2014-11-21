@@ -60,10 +60,11 @@ func main() {
 		in := display.NextInput()
 		if in.String() == ":" {
 			cmd := display.NextCommand(commands.MatchInput)
-			if l, err := strconv.Atoi(cmd.Name); err == nil {
-				display.Curr.GoToLine(l)
-			}
 			if cmd != nil {
+				if l, err := strconv.Atoi(cmd.Name); err == nil {
+					display.Curr.GoToLine(l)
+					continue
+				}
 				err := commands.Run(p, cmd.Name, cmd.Params)
 				switch err {
 				case nil:
@@ -91,11 +92,9 @@ func main() {
 				case "/":
 					sstr = display.SearchInput()
 					l := display.Curr.FindNext(sstr)
-					display.Curr.Printf("%s: %d", sstr, l)
 					display.Curr.GoToLine(l)
 				case "n":
 					l := display.Curr.FindNext(sstr)
-					display.Curr.Printf("%s: %d", sstr, l)
 					display.Curr.GoToLine(l)
 				}
 			}

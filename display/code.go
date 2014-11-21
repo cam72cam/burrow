@@ -69,13 +69,13 @@ func (o *Output) Print(l string) {
 	} else {
 		panic("Invalid line index")
 	}
-	for i := o.line; i <= blen; i++ {
+	for i := o.line; i < blen; i++ {
 		o.updateLine(i)
 	}
 }
 
 func (o *Output) updateLine(line int) {
-	if o.scroll <= line && o.scroll+o.Size() > line && len(o.buf) >= line { //onscreen and in buf
+	if o.scroll <= line && o.scroll+o.Size() > line && len(o.buf) > line { //onscreen and in buf
 		offset := line - o.scroll //in screen
 		y, _ := o.win.MaxYX()
 		o.win.HLine(offset, 0, ' ', y)
@@ -88,7 +88,7 @@ func (o *Output) updateLine(line int) {
 //Find s after line l
 func (o *Output) FindNext(s string) int {
 	bl := len(o.buf)
-	for i := o.scroll; i < bl; i++ {
+	for i := o.line + 1; i < bl; i++ {
 		if strings.Contains(o.buf[i], s) {
 			return i
 		}
@@ -110,8 +110,9 @@ func (o *Output) MoveCursor(lines int) {
 }
 
 func (o *Output) GoToLine(line int) {
-	o.line += o.scroll
-	o.Scroll(line - o.scroll)
+	//o.line += o.scroll
+	o.MoveCursor(line - o.line)
+	//o.Scroll(line - o.scroll)
 }
 
 func (o *Output) Scroll(dist int) {
