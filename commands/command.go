@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -34,8 +36,8 @@ var commands map[string]CommandDef
 func init() {
 	commands = map[string]CommandDef{
 		"help":   CommandDef{help, "Help Text", helpComplete},
-		"break":  CommandDef{breakpt, "Break at file.go:line", nil},
-		"clear":  CommandDef{clearpt, "Clear break at file.go:line", nil},
+		"break":  CommandDef{breakpt, "Break at file.go:line", pointComplete},
+		"clear":  CommandDef{clearpt, "Clear break at file.go:line", pointComplete},
 		"breaks": CommandDef{breakpts, "Show all breakpoints", nil},
 		"show":   CommandDef{showFile, "Show file", nil},
 		"exit":   CommandDef{exit, "Exit", nil},
@@ -90,6 +92,61 @@ func pointArgs(args []string) (attached.Point, error) {
 		return attached.Point{File: file, Line: line}, nil
 	default:
 		return attached.Point{}, fmt.Errorf("Expected File:Line or Address")
+	}
+}
+func pointComplete(args []string) []string {
+	if len(args) != 1 {
+		return nil
+	}
+	sp := strings.Split(args[0], ":")
+	switch len(sp) {
+	case 1: //func or addr or file
+		str := sp[0]
+		_, err := strconv.Atoi(str)
+		if err == nil { //addr
+			//TODO check valid
+			return nil
+		}
+		res := make([]string, 0)
+		/*for _, f := range p.Funcs() { //TODO
+			if strings.HasPrefix(f, str) {
+				res = append(res, f)
+			}
+		}*/
+
+		partial := filepath.Base(str)
+		base := filepath.Dir(str)
+		if filepath.Base(base) == partial {
+			partial = ""
+		}
+		dir, _ := ioutil.ReadDir(base)
+		if base == "." {
+			base = ""
+		} else {
+			base += "/"
+		}
+		if partial == "." {
+			partial = ""
+		}
+		var fromFile bool
+		for _, f := range dir {
+			if strings.HasPrefix(f.Name(), partial) && (strings.HasSuffix(f.Name(), ".go") || f.IsDir()) {
+				str = base + f.Name()
+				if f.IsDir() {
+					str += "/"
+				}
+				res = append(res, str)
+				fromFile = true
+			}
+		}
+		if len(res) == 1 && fromFile && strings.HasSuffix(res[0], ".go") {
+			res[0] = res[0] + ":"
+		}
+		return res
+	case 2: //File:line
+		return nil
+	default:
+		return nil
 	}
 }
 func breakpt(p *attached.Process, args ...string) error {

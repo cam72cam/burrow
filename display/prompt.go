@@ -27,6 +27,23 @@ type Command struct {
 	Params []string
 }
 
+func commonPrefix(s []string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	res := s[0]
+	for _, str := range s {
+		for i, r := range str {
+			if i >= len(res) {
+				break
+			} else if uint8(r) != res[i] { //May the gods of unicode forgive me
+				res = res[:i]
+			}
+		}
+	}
+	return res
+}
+
 func NextCommand(match completion.MatchFunc) *Command {
 	var input string
 	var saved string
@@ -78,22 +95,45 @@ func NextCommand(match completion.MatchFunc) *Command {
 				args = e.Args
 			}
 			matches := match(name)
+			prompt.HLine(1, 0, ' ', x)
 			if len(matches) > 0 {
-				if len(matches) == 1 {
+				suggested := make([]string, len(matches))
+				for i, m := range matches {
+					suggested[i] = m.Name
+				}
+				shortest := commonPrefix(suggested)
+				if len(matches) == 1 || pos > 0 && input[pos-1] == uint8(' ') || len(args) > 0 { //Singe or cmd + " "
 					m := matches[0]
+					if len(matches) > 1 {
+						for _, mm := range matches {
+							if mm.Name == e.Name {
+								m = mm
+								break
+							}
+						}
+					}
 					if len(m.Name) != len(name) { //no args yet, autocomplete name
 						input = m.Name + " "
 						pos = len(input)
 					} else if m.Complete != nil { //Complete args
 						suggested := m.Complete(args)
-						prompt.MovePrint(1, 1, strings.Join(suggested, ", "))
+						if len(suggested) > 0 {
+							input = m.Name + " " + strings.Join(e.Args[:len(e.Args)-1], " ") + commonPrefix(suggested)
+							pos = len(input)
+
+							if len(suggested) > 1 {
+								sugstr := strings.Join(suggested, ", ")
+								if len(sugstr) > x {
+									sugstr = sugstr[:x]
+								}
+								prompt.MovePrint(1, 0, sugstr)
+							}
+						}
 					}
-				} else { //Still trying to find command
-					suggested := make([]string, len(matches))
-					for i, m := range matches {
-						suggested[i] = m.Name
-					}
+				} else {
 					prompt.MovePrint(1, 1, strings.Join(suggested, ", "))
+					input = shortest
+					pos = len(input)
 				}
 			}
 		case nc.KEY_UP:
