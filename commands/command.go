@@ -36,6 +36,7 @@ var commands map[string]CommandDef
 func init() {
 	commands = map[string]CommandDef{
 		"help":   CommandDef{help, "Help Text", helpComplete},
+		"file":   CommandDef{file, "Show File", pointComplete}, //TODO separate complete
 		"break":  CommandDef{breakpt, "Break at file.go:line", pointComplete},
 		"clear":  CommandDef{clearpt, "Clear break at file.go:line", pointComplete},
 		"breaks": CommandDef{breakpts, "Show all breakpoints", nil},
@@ -170,6 +171,14 @@ func clearpt(p *attached.Process, args ...string) error {
 		display.HidePoint(pt)
 	}
 	return err
+}
+
+func file(p *attached.Process, args ...string) error {
+	if len(args) == 1 {
+		v := display.NewFileView()
+		return v.LoadFile(args[0])
+	}
+	return nil
 }
 
 func helpComplete(args []string) []string {

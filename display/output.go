@@ -75,6 +75,14 @@ func (o *Output) updateLine(line int) {
 	}
 }
 
+func (o *Output) Redraw() {
+	o.win.Clear()
+	for i := o.scroll; i < o.scroll+o.Size(); i++ {
+		o.updateLine(i)
+	}
+	o.win.Move(o.line-o.scroll, 1)
+}
+
 //Find s after line l
 func (o *Output) FindNext(s string) int {
 	bl := len(o.buf)
