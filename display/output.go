@@ -34,6 +34,13 @@ func (o *Output) Size() int {
 	return y
 }
 
+func (o *Output) Empty() {
+	o.line = -1
+	o.scroll = 0
+	o.buf = nil
+	o.win.Clear()
+}
+
 func (o *Output) Printf(fmts string, args ...interface{}) {
 	line := fmt.Sprintf(fmts, args...)
 	o.Print(line)
@@ -58,7 +65,7 @@ func (o *Output) Print(l string) {
 		copy(o.buf[o.line+1:], o.buf[o.line:])
 		o.buf[o.line] = l
 	} else {
-		panic("Invalid line index")
+		panic(fmt.Sprintf("Invalid line index %d %d", o.line, blen))
 	}
 	for i := o.line; i < blen; i++ {
 		o.updateLine(i)

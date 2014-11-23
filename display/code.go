@@ -16,10 +16,6 @@ func createExpanse() Expanse {
 func (e *Expanse) Close() {
 }
 
-func ShowPoint(pt attached.Point) {
-	//TODO actually create a point window
-	code.MovePrint(1, 1, pt.String())
-}
-func HidePoint(pt attached.Point) {
-	//TODO
+func DisplayBreakpoints(p *attached.Process) {
+
 }

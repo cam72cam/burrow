@@ -47,6 +47,17 @@ func (p *Process) HasFunc(name string) bool {
 	return false
 }
 
+func (p *Process) BreakPoints() map[uint64]Point {
+	res := make(map[uint64]Point)
+	for addr, _ := range p.dbp.BreakPoints {
+		pt := Point{Addr: addr}
+		pt.fromAddr(p)
+		res[addr] = pt
+	}
+
+	return res
+}
+
 func (p *Process) Step() error {
 	return p.dbp.Next()
 }
@@ -66,6 +77,10 @@ func (p *Process) Break(pt Point) (Point, error) {
 		if err := pt.fromFile(p); err != nil {
 			return Point{}, err
 		}
+	} else if pt.Func != "" {
+		if err := pt.fromFunc(p); err != nil {
+			return Point{}, err
+		}
 	}
 	_, err := p.dbp.Break(uintptr(pt.Addr))
 	return pt, err
@@ -83,6 +98,7 @@ func (pt *Point) String() string {
 }
 
 var ErrAddrNotFound = errors.New("Error Address not found!")
+var ErrFuncNotFound = errors.New("Error Func not found!")
 
 func (pt *Point) fromAddr(p *Process) error {
 	f, l, fn := p.dbp.GoSymTable.PCToLine(pt.Addr)
@@ -93,6 +109,15 @@ func (pt *Point) fromAddr(p *Process) error {
 		return nil
 	}
 	return ErrAddrNotFound
+}
+
+func (pt *Point) fromFunc(p *Process) error {
+	fn := p.dbp.GoSymTable.LookupFunc(pt.Func)
+	if fn != nil {
+		pt.Addr = fn.Entry
+		return pt.fromAddr(p)
+	}
+	return ErrFuncNotFound
 }
 
 func (pt *Point) fromFile(p *Process) error {

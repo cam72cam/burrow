@@ -68,6 +68,8 @@ func showFile(p *attached.Process, args ...string) error {
 }
 
 func breakpts(p *attached.Process, args ...string) error {
+	v := display.NewBreakPointView()
+	v.Show(p)
 	return nil
 }
 
@@ -79,10 +81,10 @@ func pointArgs(args []string) (attached.Point, error) {
 	switch len(sp) {
 	case 1:
 		addr, err := strconv.Atoi(args[0]) //TODO Atoi is insufficient, need uint64 support
-		if err != nil {
-			return attached.Point{}, err
+		if err == nil {
+			return attached.Point{Addr: uint64(addr)}, nil
 		}
-		return attached.Point{Addr: uint64(addr)}, nil
+		return attached.Point{Func: args[0]}, nil
 	case 2:
 		//TODO check file exists
 		file := sp[0]
@@ -202,9 +204,12 @@ func breakpt(p *attached.Process, args ...string) error {
 	}
 	pt, err = p.Break(pt)
 	if err != nil {
-		display.ShowPoint(pt)
+		return err
 	}
-	return err
+	//TODO diff if file view
+	v := display.NewBreakPointView()
+	v.Show(p)
+	return nil
 }
 func clearpt(p *attached.Process, args ...string) error {
 	pt, err := pointArgs(args)
@@ -213,9 +218,12 @@ func clearpt(p *attached.Process, args ...string) error {
 	}
 	pt, err = p.Clear(pt)
 	if err != nil {
-		display.HidePoint(pt)
+		return err
 	}
-	return err
+	//TODO diff if file view
+	v := display.NewBreakPointView()
+	v.Show(p)
+	return nil
 }
 
 func file(p *attached.Process, args ...string) error {

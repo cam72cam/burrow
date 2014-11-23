@@ -73,8 +73,9 @@ func main() {
 					Exit(0)
 				default:
 					o := display.NewOutput()
-					defer o.Close()
 					o.Printf("%v", err)
+					o.Redraw()
+					o.Close()
 				}
 			}
 		} else {
