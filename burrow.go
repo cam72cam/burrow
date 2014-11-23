@@ -59,7 +59,7 @@ func main() {
 	for {
 		in := display.NextInput()
 		if in.String() == ":" {
-			cmd := display.NextCommand(commands.MatchInput)
+			cmd := display.NextCommand(p, commands.MatchInput)
 			if cmd != nil {
 				if l, err := strconv.Atoi(cmd.Name); err == nil {
 					display.Curr.GoToLine(l)

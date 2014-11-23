@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cam72cam/burrow/attached"
 	"github.com/cam72cam/burrow/completion"
 	"github.com/cam72cam/burrow/history"
 	nc "github.com/gbin/goncurses"
@@ -44,7 +45,7 @@ func commonPrefix(s []string) string {
 	return res
 }
 
-func NextCommand(match completion.MatchFunc) *Command {
+func NextCommand(p *attached.Process, match completion.MatchFunc) *Command {
 	var input string
 	var saved string
 	histdex := 0
@@ -116,7 +117,7 @@ func NextCommand(match completion.MatchFunc) *Command {
 						input = m.Name + " "
 						pos = len(input)
 					} else if m.Complete != nil { //Complete args
-						suggested := m.Complete(args)
+						suggested := m.Complete(p, args)
 						if len(suggested) > 0 {
 							input = m.Name + " " + strings.Join(e.Args[:len(e.Args)-1], " ") + commonPrefix(suggested)
 							pos = len(input)

@@ -2,6 +2,7 @@ package display
 
 import (
 	"fmt"
+	nc "github.com/gbin/goncurses"
 	"strings"
 )
 
@@ -70,7 +71,9 @@ func (o *Output) updateLine(line int) {
 		y, _ := o.win.MaxYX()
 		o.win.HLine(offset, 0, ' ', y)
 		o.win.Move(offset, 0)
+		o.win.AttrOn(nc.A_BOLD)
 		o.win.Printf("%d %s", line, o.buf[line])
+		o.win.AttrOff(nc.A_BOLD)
 		o.win.Refresh()
 	}
 }

@@ -38,6 +38,14 @@ func (p *Process) Funcs() []string {
 	}
 	return res
 }
+func (p *Process) HasFunc(name string) bool {
+	for _, f := range p.dbp.GoSymTable.Funcs {
+		if f.Name == name {
+			return true
+		}
+	}
+	return false
+}
 
 func (p *Process) Step() error {
 	return p.dbp.Next()

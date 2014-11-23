@@ -24,7 +24,7 @@ func Init() (func(), error) {
 	nc.StartColor() //Start using colors
 
 	//nc.InitPair(1, nc.C_RED, nc.C_GREEN)
-	nc.InitPair(2, nc.C_GREEN, nc.C_BLACK)
+	nc.InitPair(2, nc.C_WHITE, nc.C_BLACK)
 	//s.SetBackground(nc.ColorPair(1))
 
 	s.Keypad(true)

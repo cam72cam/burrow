@@ -36,7 +36,7 @@ var commands map[string]CommandDef
 func init() {
 	commands = map[string]CommandDef{
 		"help":   CommandDef{help, "Help Text", helpComplete},
-		"file":   CommandDef{file, "Show File", pointComplete}, //TODO separate complete
+		"file":   CommandDef{file, "Show File", fileComplete}, //TODO separate complete
 		"break":  CommandDef{breakpt, "Break at file.go:line", pointComplete},
 		"clear":  CommandDef{clearpt, "Clear break at file.go:line", pointComplete},
 		"breaks": CommandDef{breakpts, "Show all breakpoints", nil},
@@ -95,7 +95,7 @@ func pointArgs(args []string) (attached.Point, error) {
 		return attached.Point{}, fmt.Errorf("Expected File:Line or Address")
 	}
 }
-func pointComplete(args []string) []string {
+func pointComplete(p *attached.Process, args []string) []string {
 	if len(args) != 1 {
 		return nil
 	}
@@ -109,12 +109,64 @@ func pointComplete(args []string) []string {
 			return nil
 		}
 		res := make([]string, 0)
-		/*for _, f := range p.Funcs() { //TODO
-			if strings.HasPrefix(f, str) {
-				res = append(res, f)
-			}
-		}*/
+		othersHidden := false
 
+		//someone should find a better way of doing this...
+		splits := len(strings.Split(str, "/"))
+		for _, f := range p.Funcs() {
+			if strings.HasPrefix(f, str) {
+				sp := strings.Split(f, "/")
+				base := strings.Join(sp[:splits], "/")
+				resti := len(str)
+				rest := f[resti:]
+				bi := strings.Index(rest, ".")
+				if bi == 0 || bi == 1 { //current path (it will be 1 or 0, I don't know which)
+					bi = -1
+				}
+				if bi != -1 {
+					bi += resti
+				}
+
+				found := false
+
+				for i, curr := range res {
+					if curr == base {
+						found = true
+						break
+					}
+					if bi != -1 && len(curr) >= bi && curr[:bi] == f[:bi] {
+						othersHidden = true
+						res[i] = res[i][:bi]
+						found = true
+						break
+					}
+				}
+
+				if !found && base != str {
+					res = append(res, base)
+				}
+			}
+		}
+
+		fromFile := len(res) == 0
+		res = append(res, fileComplete(p, args)...)
+		if len(res) == 1 && fromFile && strings.HasSuffix(res[0], ".go") {
+			res[0] += ":"
+		} else if len(res) == 1 && !fromFile && !p.HasFunc(res[0]) && !othersHidden {
+			res[0] += "/"
+		}
+		return res
+	case 2: //File:line
+		return nil
+	default:
+		return nil
+	}
+}
+
+func fileComplete(p *attached.Process, args []string) []string {
+	if len(args) == 1 {
+		str := args[0]
+		res := make([]string, 0)
 		partial := filepath.Base(str)
 		base := filepath.Dir(str)
 		if filepath.Base(base) == partial {
@@ -129,7 +181,6 @@ func pointComplete(args []string) []string {
 		if partial == "." {
 			partial = ""
 		}
-		var fromFile bool
 		for _, f := range dir {
 			if strings.HasPrefix(f.Name(), partial) && (strings.HasSuffix(f.Name(), ".go") || f.IsDir()) {
 				str = base + f.Name()
@@ -137,19 +188,13 @@ func pointComplete(args []string) []string {
 					str += "/"
 				}
 				res = append(res, str)
-				fromFile = true
 			}
 		}
-		if len(res) == 1 && fromFile && strings.HasSuffix(res[0], ".go") {
-			res[0] = res[0] + ":"
-		}
 		return res
-	case 2: //File:line
-		return nil
-	default:
-		return nil
 	}
+	return nil
 }
+
 func breakpt(p *attached.Process, args ...string) error {
 	pt, err := pointArgs(args)
 	if err != nil {
@@ -181,7 +226,7 @@ func file(p *attached.Process, args ...string) error {
 	return nil
 }
 
-func helpComplete(args []string) []string {
+func helpComplete(p *attached.Process, args []string) []string {
 	if len(args) == 0 {
 		return []string{"TODO usage"}
 	}
