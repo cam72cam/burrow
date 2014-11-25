@@ -35,14 +35,16 @@ var commands map[string]CommandDef
 
 func init() {
 	commands = map[string]CommandDef{
-		"help":   CommandDef{help, "Help Text", helpComplete},
-		"file":   CommandDef{file, "Show File", fileComplete}, //TODO separate complete
-		"break":  CommandDef{breakpt, "Break at file.go:line", pointComplete},
-		"clear":  CommandDef{clearpt, "Clear break at file.go:line", pointComplete},
-		"breaks": CommandDef{breakpts, "Show all breakpoints", nil},
-		"show":   CommandDef{showFile, "Show file", nil},
-		"exit":   CommandDef{exit, "Exit", nil},
-		"quit":   CommandDef{exit, "Exit", nil},
+		"help":     CommandDef{help, "Help Text", helpComplete},
+		"status":   CommandDef{showContext, "Show process status", nil},
+		"file":     CommandDef{file, "Show File", fileComplete}, //TODO separate complete
+		"break":    CommandDef{breakpt, "Break at file.go:line", pointComplete},
+		"clear":    CommandDef{clearpt, "Clear break at file.go:line", pointComplete},
+		"breaks":   CommandDef{breakpts, "Show all breakpoints", nil},
+		"continue": CommandDef{continue_exec, "Run to next breakpoint", nil},
+		"funcs":    CommandDef{showFuncs, "Show funcs", nil},
+		"exit":     CommandDef{exit, "Exit", nil},
+		"quit":     CommandDef{exit, "Exit", nil},
 	}
 }
 
@@ -57,7 +59,12 @@ func exit(p *attached.Process, args ...string) error {
 	return ExitCMD
 }
 
-func showFile(p *attached.Process, args ...string) error {
+func showContext(p *attached.Process, args ...string) error {
+	out := display.NewContextView()
+	return out.LoadContext(p)
+}
+
+func showFuncs(p *attached.Process, args ...string) error {
 	out := display.NewOutput()
 	defer out.Close()
 
@@ -71,6 +78,17 @@ func breakpts(p *attached.Process, args ...string) error {
 	v := display.NewBreakPointView()
 	v.Show(p)
 	return nil
+}
+
+func continue_exec(p *attached.Process, args ...string) error {
+	err := p.Continue()
+	if err != nil {
+		panic(err)
+		return err
+	}
+
+	out := display.NewContextView()
+	return out.LoadContext(p)
 }
 
 func pointArgs(args []string) (attached.Point, error) {

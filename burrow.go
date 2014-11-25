@@ -13,8 +13,12 @@ import (
 	nc "github.com/gbin/goncurses"
 )
 
-func main() {
+func init() {
+
 	runtime.LockOSThread()
+}
+
+func main() {
 
 	p, err := attached.Launch(os.Args[1:])
 	if err != nil {
@@ -73,7 +77,7 @@ func main() {
 					Exit(0)
 				default:
 					o := display.NewOutput()
-					o.Printf("%v", err)
+					o.Printf("%v for pit %d", err, p.PID())
 					o.Redraw()
 					o.Close()
 				}
@@ -97,6 +101,14 @@ func main() {
 				case "n":
 					l := display.Curr.FindNext(sstr)
 					display.Curr.GoToLine(l)
+				case "i":
+					p.StepAll()
+					out := display.NewContextView()
+					out.LoadContext(p)
+				case "s":
+					p.NextAll()
+					out := display.NewContextView()
+					out.LoadContext(p)
 				}
 			}
 		}

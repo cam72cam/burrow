@@ -3,8 +3,9 @@ package attached
 import (
 	"errors"
 	"fmt"
+	"syscall"
 
-	"github.com/derekparker/delve/proctl"
+	"github.com/cam72cam/delve/proctl"
 )
 
 func Attach(pid int) (*Process, error) {
@@ -27,8 +28,25 @@ type Process struct {
 	dbp *proctl.DebuggedProcess
 }
 
+func (p *Process) PID() int {
+	return p.dbp.Pid
+}
+
 func (p *Process) Kill() error {
 	return p.dbp.Process.Kill()
+}
+func (p *Process) CurrentThreadPoints() (map[int]Point, error) {
+	pts := make(map[int]Point)
+	for i, t := range p.dbp.Threads {
+		pc, err := t.CurrentPC()
+		if err != nil && pc != 0 {
+			return nil, err
+		}
+		pt := Point{Addr: pc}
+		pt.fromAddr(p)
+		pts[i] = pt
+	}
+	return pts, nil
 }
 
 func (p *Process) Funcs() []string {
@@ -56,10 +74,6 @@ func (p *Process) BreakPoints() map[uint64]Point {
 	}
 
 	return res
-}
-
-func (p *Process) Step() error {
-	return p.dbp.Next()
 }
 
 func (p *Process) Clear(pt Point) (Point, error) {
@@ -141,4 +155,45 @@ func (p *Process) CurrentPoint() (pt Point, err error) {
 	}
 	pt = Point{Addr: regs.PC()}
 	return pt, pt.fromAddr(p)
+}
+
+func (p *Process) Continue() error {
+	return p.dbp.Continue()
+}
+
+func (p *Process) StepAll() error {
+	for _, t := range p.dbp.Threads {
+		if err := t.Step(); err != nil {
+			return err
+		}
+	}
+	return p.dbp.Step()
+}
+func (p *Process) StepCurrent() error {
+	return p.dbp.CurrentThread.Step()
+}
+func (p *Process) Step(id int) error {
+	if t, ok := p.dbp.Threads[id]; ok {
+		return t.Step()
+	}
+	return fmt.Errorf("%d is not a thread", id)
+}
+func (p *Process) NextAll() error {
+	for _, t := range p.dbp.Threads {
+		if err := t.Step(); err != nil {
+			if _, ok := err.(proctl.TimeoutError); !ok && err != syscall.ESRCH {
+				return err
+			}
+		}
+	}
+	return p.dbp.Step()
+}
+func (p *Process) NextCurrent() error {
+	return p.dbp.CurrentThread.Step()
+}
+func (p *Process) Next(id int) error {
+	if t, ok := p.dbp.Threads[id]; ok {
+		return t.Step()
+	}
+	return fmt.Errorf("%d is not a thread", id)
 }
