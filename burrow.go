@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
+	"time"
 
 	"github.com/cam72cam/burrow/attached"
 	"github.com/cam72cam/burrow/commands"
@@ -50,6 +51,7 @@ func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			fn()
+			time.Sleep(time.Millisecond)
 			fmt.Println(r)
 			fmt.Printf("%s\n", debug.Stack())
 		}
@@ -77,7 +79,7 @@ func main() {
 					Exit(0)
 				default:
 					o := display.NewOutput()
-					o.Printf("%v for pit %d", err, p.PID())
+					o.Printf("%v for pid %d", err, p.PID())
 					o.Redraw()
 					o.Close()
 				}
