@@ -167,7 +167,7 @@ func (p *Process) StepAll() error {
 			return err
 		}
 	}
-	return p.dbp.Step()
+	return nil
 }
 func (p *Process) StepCurrent() error {
 	return p.dbp.CurrentThread.Step()
@@ -180,20 +180,20 @@ func (p *Process) Step(id int) error {
 }
 func (p *Process) NextAll() error {
 	for _, t := range p.dbp.Threads {
-		if err := t.Step(); err != nil {
+		if err := t.Next(); err != nil {
 			if _, ok := err.(proctl.TimeoutError); !ok && err != syscall.ESRCH {
 				return err
 			}
 		}
 	}
-	return p.dbp.Step()
+	return nil
 }
 func (p *Process) NextCurrent() error {
-	return p.dbp.CurrentThread.Step()
+	return p.dbp.CurrentThread.Next()
 }
 func (p *Process) Next(id int) error {
 	if t, ok := p.dbp.Threads[id]; ok {
-		return t.Step()
+		return t.Next()
 	}
 	return fmt.Errorf("%d is not a thread", id)
 }
