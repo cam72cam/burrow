@@ -3,6 +3,7 @@ package attached
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"syscall"
 
 	"github.com/cam72cam/delve/proctl"
@@ -44,6 +45,9 @@ func (p *Process) CurrentThreadPoints() (map[int]Point, error) {
 		}
 		pt := Point{Addr: pc}
 		pt.fromAddr(p)
+		if strings.Contains(pt.File, "pkg/runtime") {
+			//	continue
+		}
 		pts[i] = pt
 	}
 	return pts, nil

@@ -83,7 +83,6 @@ func breakpts(p *attached.Process, args ...string) error {
 func continue_exec(p *attached.Process, args ...string) error {
 	err := p.Continue()
 	if err != nil {
-		panic(err)
 		return err
 	}
 
